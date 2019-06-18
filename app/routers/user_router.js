@@ -1,14 +1,14 @@
 module.exports = function (app) {
-  var userInfo = require('../controllers/user_controller')
+  const userInfo = require('../controllers/user_controller')
 
-  app.use(userInfo.checkToken)
+  app.route('/api/authenticate/login')
+    .get(userInfo.login)
 
-  app.route('/user')
+  app.route('/api/authenticate/user')
     .post(userInfo.createNewUser)
 
-  app.route('/user/checkUsername')
-    .get(userInfo.checkExistUsername)
+  app.use('/api', userInfo.checkToken)
 
-  app.route('/user/login')
-    .get(userInfo.login)
+  app.route('/api/user/checkUsername')
+    .get(userInfo.checkExistUsername)
 }

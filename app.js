@@ -1,6 +1,5 @@
 const express = require('express');
 const bodyParser = require('body-parser')
-const jwt = require('jsonwebtoken')
 const app = express()
 
 // parse requests of content-type - application/json

@@ -1,8 +1,10 @@
 const mysqldb = require('../../config/mysql_connect')
 const bcrypt = require('bcrypt');
 const userRespository = require('../respositorys/user_respository')
+const jwt = require('jsonwebtoken')
+const config = require('../../config/config')
 
-var UserInfo = function (userInfo) {
+let UserInfo = function (userInfo) {
   this.user_name = userInfo.user_name
   this.password = userInfo.password
   this.name = userInfo.name
@@ -48,7 +50,7 @@ UserInfo.createNewUser = function createNewUser(newUser, result) {
 }
 
 UserInfo.checkExistUsername = function checkExistUsername(username, result) {
-  var sql = 'SELECT Count(user_name) as count FROM user_info WHERE user_name = ?'
+  let sql = 'SELECT Count(user_name) as count FROM user_info WHERE user_name = ?'
   mysqldb.query(sql, username, function (err, res) {
 
     if (err) {
@@ -63,13 +65,13 @@ UserInfo.checkExistUsername = function checkExistUsername(username, result) {
 }
 
 UserInfo.login = function login(userInfo, result) {
-  var username = userInfo.user_name
-  var password = userInfo.password
+  let username = userInfo.user_name
+  let password = userInfo.password
 
   // Get Password hash
   mysqldb.query(userRespository.RANDOM_AND_PASSWORD_SQL, username, function (err, res) {
     if (res.length) {
-      var ranAndPass = res[0]
+      let ranAndPass = res[0]
       // Compare password
       bcrypt.compare(password + ranAndPass.random_key, ranAndPass.password, function (err, res) {
         if (res) {
@@ -80,7 +82,12 @@ UserInfo.login = function login(userInfo, result) {
             }
             else {
               if (res[0].is_active) {
-                result(null, res)
+                let token = jwt.sign (
+                  {username: username},
+                  config.secret,
+                  {expiresIn: '24h'}
+                )
+                result(null, {res, token})
               }
               else {
                 // Account have not activated yet
@@ -101,8 +108,22 @@ UserInfo.login = function login(userInfo, result) {
   })
 }
 
-UserInfo.checkToken = function checkToken(token, result) {
-  
+UserInfo.checkToken = function checkToken(token, res) {
+  if (token.startsWith('Bearer ')) {
+    token = token.slice(7, token.length)
+  }
+  if (token) {
+    jwt.verify(token, config.secret, (err, decoded) => {
+      if (err) {
+        result('0007', null)
+      } else {
+        // req.decoded = decoded
+        result(null, res)
+      }
+    })
+  } else {
+    result('0008', null)
+  }
 }
 
 // Common function

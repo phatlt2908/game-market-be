@@ -1,7 +1,7 @@
-var UserInfo = require('../models/user_model')
+const UserInfo = require('../models/user_model')
 
 exports.createNewUser = function (req, res) {
-  var newUser = new UserInfo(req.body)
+  let newUser = new UserInfo(req.body)
   // check required
   if (!newUser.user_name || !newUser.password) {
     res.status(400).send({ error: '0002', message: 'Please provide username/password' })
@@ -20,7 +20,7 @@ exports.createNewUser = function (req, res) {
 }
 
 exports.checkExistUsername = function (req, res) {
-  var username = req.body.user_name
+  let username = req.body.user_name
   console.log('username', username)
 
   UserInfo.checkExistUsername(username, function (err, count) {
@@ -50,11 +50,25 @@ exports.login = function (userInfo, res) {
       }
     }
     else {
+      console.log('>> res', response)
       res.send(response)
     }
   })
 }
 
-exports.checkToken = function () {
-  
+exports.checkToken = function (req, res, next) {
+  let token = req.headers['x-access-token'] || req.headers['authorization']
+  UserInfo.checkToken(token, function (err, response) {
+    if (err) {
+      if (err == '0007') {
+        res.status(400).send({ error: '0007', message: 'Token is not valid' })
+      }
+      if (err == '0008') {
+        res.status(400).send({ error: '0008', message: 'Auth token is not supplied' })
+      }
+    }
+    else {
+      next()
+    }
+  })
 }
