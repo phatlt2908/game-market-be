@@ -1,7 +1,6 @@
-const mysql = require('mysql');
- 
-console.log('Get connection ...');
- 
+const mysql = require('mysql')
+const util = require('util')
+
 // let conn = mysql.createConnection({
 //   database: 'cho_game',
 //   host: 'localhost',
@@ -16,11 +15,13 @@ let conn = mysql.createConnection({
   user: 'vaynh327_phat',
   password: 'let1enphat',
   port: 3306
-});
+})
 
-conn.connect(function(err) {
-  if (err) throw err
-  else console.log('Connected!')
-});
- 
-module.exports = conn
+const query = util.promisify(conn.query).bind(conn)
+
+// conn.connect(function (err) {
+//   if (err) throw err
+//   else console.log('Connected!')
+// });
+
+module.exports = query

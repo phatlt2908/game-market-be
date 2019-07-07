@@ -12,11 +12,6 @@ app.use(function(req, res, next) {
   next();
 });
 
-//define a route, usually this would be a bunch of routes imported from another file
-app.get('/', function (req, res, next) {
-  res.send('Con chim non')
-});
-
-require('./app/routers/user_router')(app)
+require('./app/routers/routes')(app)
 
 app.listen(process.env.PORT || 8081)
