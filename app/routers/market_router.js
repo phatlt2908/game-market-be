@@ -5,4 +5,4 @@ const {checkToken} = require('../actions').auth
 
 app.use(checkToken)
 
-app.post('/get-all-products', getAllProducts)
+app.get('/get-all-products', getAllProducts)

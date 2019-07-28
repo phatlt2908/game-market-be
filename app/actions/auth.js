@@ -5,34 +5,46 @@ const jwt = require('jsonwebtoken')
 const config = require('../../config/config')
 
 login = async function (req, res) {
-  let user = req.body
-  let ranAndPass = await mysqldb(userRespository.RANDOM_AND_PASSWORD_SQL, user.username)
+  let loginInfo = req.body
+  // check required
+  if (!loginInfo.username || !loginInfo.password) {
+    return res.status(400).send({ error: '0001', message: 'Incomplete information' })
+  }
+  let ranAndPass = await mysqldb(userRespository.RANDOM_AND_PASSWORD_SQL, loginInfo.username)
   if (!ranAndPass.length) {
-    res.status(400).send({ appcode: '0001', msg: 'user does not exist' })
+    return res.status(400).send({ appcode: '0001', msg: 'user does not exist' })
   }
   ranAndPass = ranAndPass[0]
   // Compare password
-  let isMatched = await bcrypt.compare(user.password + ranAndPass.random_key, ranAndPass.password)
+  let isMatched = await bcrypt.compare(loginInfo.password + ranAndPass.random_key, ranAndPass.password)
   if (!isMatched) {
-    res.status(400).send({ appcode: '0001', msg: 'Password is incorrect' })
+    return res.status(400).send({ appcode: '0001', msg: 'Password is incorrect' })
   }
-  let result = await mysqldb(userRespository.LOGIN_SQL, [user.username, ranAndPass.password])
+  let result = await mysqldb(userRespository.LOGIN_SQL, [loginInfo.username, ranAndPass.password])
   if (!result) {
-    res.status(400).send({ appcode: '0001', msg: 'Login failed', err })
+    return res.status(400).send({ appcode: '0001', msg: 'Login failed', err })
   }
   if (result[0].is_active) {
     let token = jwt.sign(
-      { username: user.username },
+      { username: loginInfo.username },
       config.secret,
       { expiresIn: '24h' }
     )
+    
+    let user = {
+      'username': loginInfo.username,
+      'name': result[0].name,
+      'phone': result[0].phone,
+      'email': result[0].email
+    }
+
     res.status(200).send({
-      "user": result,
-      "access-token": token
+      "user": user,
+      "accessToken": token
     })
   } else {
     // Account have not activated yet
-    res.status(400).send({ appcode: '0001', msg: 'Account have not activated yet' })
+    return res.status(400).send({ appcode: '0001', msg: 'Account have not activated yet' })
   }
 }
 
@@ -53,15 +65,15 @@ signup = async function (req, res) {
   let password = await bcrypt.hash(info.password + randomKey, 10)
 
   let user = {
-    "user_name": info.username,
-    "password": password,
-    "name": info.name,
-    "is_active": false,
-    "create_date": new Date(),
-    "phone": info.phone,
-    "email": info.email,
-    "last_login": new Date(),
-    "random_key": randomKey
+    'user_name': info.username,
+    'password': password,
+    'name': info.name,
+    'is_active': false,
+    'create_date': new Date(),
+    'phone': info.phone,
+    'email': info.email,
+    'last_login': new Date(),
+    'random_key': randomKey
   }
 
   // Regist User
@@ -73,6 +85,12 @@ signup = async function (req, res) {
 }
 
 checkToken = function (req, res, next) {
+  if (!req.headers['x-access-token'] && !req.headers['authorization']) {
+    return res.status(401).send({
+      success: false,
+      message: 'Missing token'
+    })
+  }
   let token = req.headers['x-access-token'] || req.headers['authorization']
   if (token.startsWith('Bearer ')) {
     token = token.slice(7, token.length)
